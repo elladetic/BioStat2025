@@ -1,0 +1,132 @@
+---
+title: "2 - Linear Regression"
+output: html_document
+date: "2025-06-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(boot)
+library(ggplot2)
+```
+
+## Data reading
+```{r cars}
+data <- read.csv("data.csv",sep = "", header = TRUE)
+data$spol <- as.factor(data$spol)
+data$tip <- as.factor(data$tip)
+colnames(data)
+#anyNA(data)
+```
+
+```{r}
+##FINAL FINAL
+##1 primjer - gdje se bootstrap slaze s teorijskim rezultatima
+set.seed(12345)
+res = rnorm(n = 80, mean = 0, sd=1) #greske su normalne, homoskedasticne
+y = data$LEUK + res
+df = data.frame(x = data$LEUK,y = y)
+
+#ovdje fitamo teorijski model i vidimo da je on dobar
+model <- lm(y ~ x, df)
+summary(model)
+#hist(residuals(model), breaks = 20, main = "Histogram of Residuals")
+#par(mfrow = c(2, 2)) 
+plot(model)
+se_theoretical <- summary(model)$coefficients["x", "Std. Error"]
+
+# Bootstrap procjena standardne pogreške
+n <- nrow(df)
+B <- 10000
+coef_x <- numeric(B)
+
+for (i in 1:B) {
+  idx <- sample(1:n, size = n, replace = TRUE)
+  boot_model <- lm(y ~ x, data = df[idx, ])
+  coef_x[i] <- coef(boot_model)["x"]
+}
+hist(coef_x, 
+     main = "Histogram of Bootstrap Coefficients", 
+     xlab = "Bootstrap Coefficients")
+se_bootstrap <- sd(coef_x)
+
+cat("Teorijska SE:", round(se_theoretical, 7), "\n")
+cat("Bootstrap SE:", round(se_bootstrap, 7), "\n")
+
+```
+
+```{r}
+##FINAL FINAL
+##2 primjer - gdje se bootstrap daje bolje rezultate od teorije - nenormalnost
+set.seed(12345)
+res = runif(n = 80, 1,10)  #TBD
+y = data$LEUK + res
+df = data.frame(x = data$LEUK,y = y)
+
+# Linearna regresija
+model <- lm(y ~ x, data = df)
+summary(model)
+hist(residuals(model), breaks = 20, main = "Histogram of Residuals")
+#par(mfrow = c(2, 2)) 
+plot(model)
+se_theoretical <- summary(model)$coefficients["x", "Std. Error"]
+
+# Bootstrap procjena standardne pogreške
+n <- nrow(df)
+B <- 10000
+coef_x <- numeric(B)
+
+for (i in 1:B) {
+  idx <- sample(1:n, size = n, replace = TRUE)
+  boot_model <- lm(y ~ x, data = df[idx, ])
+  coef_x[i] <- coef(boot_model)["x"]
+}
+hist(coef_x, 
+     main = "Histogram of Bootstrap Coefficients", 
+     xlab = "Bootstrap Coefficients")
+se_bootstrap <- sd(coef_x)
+
+cat("Teorijska SE:", round(se_theoretical, 7), "\n")
+cat("Bootstrap SE:", round(se_bootstrap, 7), "\n")
+
+```
+
+```{r}
+##3 primjer - gdje se bootstrap daje bolje rezultate od teorije  - heteroskedasticnost
+set.seed(12345)
+sigma <- 0.5 + 3 * data$LEUK
+res <- rnorm(n, mean = 0, sd = sigma)
+y = data$LEUK + res
+df = data.frame(x = data$LEUK,y = y)
+
+# Linearna regresija
+model <- lm(y ~ x, data = df)
+summary(model)
+hist(residuals(model), breaks = 20, main = "Histogram of Residuals")
+#par(mfrow = c(2, 2)) 
+plot(model)
+se_theoretical <- summary(model)$coefficients["x", "Std. Error"]
+
+# Bootstrap procjena standardne pogreške
+n <- nrow(df)
+B <- 100 #za prezu - isprobaj vise B-ova
+coef_x <- numeric(B)
+
+for (i in 1:B) {
+  idx <- sample(1:n, size = n, replace = TRUE)
+  boot_model <- lm(y ~ x, data = df[idx, ])
+  coef_x[i] <- coef(boot_model)["x"]
+}
+hist(coef_x, 
+     main = "Histogram of Bootstrap Coefficients", 
+     xlab = "Bootstrap Coefficients")
+se_bootstrap <- sd(coef_x)
+
+cat("Teorijska SE:", round(se_theoretical, 7), "\n")
+cat("Bootstrap SE:", round(se_bootstrap, 7), "\n")
+
+```
+
+
+
+

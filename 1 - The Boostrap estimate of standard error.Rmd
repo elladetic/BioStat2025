@@ -1,0 +1,77 @@
+---
+title: "Estimators"
+output: html_document
+date: "2025-06-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(boot)
+```
+
+
+## Data reading
+```{r cars}
+data <- read.csv("data.csv",sep = "", header = TRUE)
+data$spol <- as.factor(data$spol)
+data$tip <- as.factor(data$tip)
+colnames(data)
+anyNA(data)
+```
+
+
+#Correlation Coffficient - Gukb and HbA1c
+```{r}
+#zanima nas koliko je tocan koeficijent korelacije, iznosi oko 0.4 na uzorku
+
+boot_corr <- function(data, indices){
+  sample_data <- data[indices, ]
+  return(cor(sample_data$GUKb, sample_data$HbA1c))
+}
+
+#### 1 - bootstrap standard error, table for slide
+boot_sd = c()
+for (B in c(25, 50, 80, 100, 200, 400, 800, 1600, 3500, 5000, 6000)){
+  set.seed(12345)
+  results <- boot(data = data, statistic = boot_corr, R = B)
+  boot_sd= c(boot_sd, sd(results$t))
+}
+print(c(25, 50, 80, 100, 200, 400, 800, 1600, 3500, 5000, 6000))
+print(boot_sd)
+
+#### 2 - histogram of bootstrap replications for B = 1000 and qq plot (it is normal)
+set.seed(12345)
+results_1000 <- boot(data = data, statistic = boot_corr, R = 1000)
+plot(results_1000)
+
+## 3 - odgovor na pitanje koliko je procjenitelj tocan
+boot.ci(results_1000, type = c("perc"))
+```
+
+
+### još neki grafovi - opcionalno
+```{r}
+# Plot density of bootstrap correlations
+plot(density(results_1000$t),
+     main = "Density Plot of Bootstrap Correlation (GUKb ↔ HbA1c)",
+     xlab = "Correlation Coefficient",
+     col = "darkblue",
+     lwd = 2)
+
+# Add a vertical line for the original correlation
+abline(v = cor(data$GUKb, data$HbA1c), col = "red", lwd = 2, lty = 2)
+
+
+# Plot histogram of bootstrap correlations
+hist(results_1000$t,
+     main = "Bootstrap Distribution of Correlation (GUKb ↔ HbA1c)",
+     xlab = "Correlation Coefficient",
+     col = "gray",
+     border = "white")
+
+# Optionally add a vertical line for the original sample correlation
+abline(v = cor(data$GUKb, data$HbA1c), col = "red", lwd = 2, lty = 2)
+```
+

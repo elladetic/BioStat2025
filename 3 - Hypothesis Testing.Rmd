@@ -1,0 +1,100 @@
+---
+title: "2 - Linear Regression"
+output: html_document
+date: "2025-06-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data reading
+```{r cars}
+data <- read.csv("data.csv",sep = "", header = TRUE)
+data$spol <- as.factor(data$spol)
+data$tip <- as.factor(data$tip)
+colnames(data)
+summary(data$spol) #0 muskarci i 1 zene, pitaj Jazbec za opis podataka?
+#zelimo testirati da su distrbucije CRP-a statisticki znacajnu razlicite
+#prica ide u smjeru da su pretpostavke itekako vazne!
+```
+
+```{r}
+set.seed(12345)
+zene = data$CRP[data$spol == 0] #za provjeriti!
+muskarci = data$CRP[data$spol == 1]
+
+
+#provjera normalnosti
+# Q-Q plot for women
+par(mfrow = c(2, 2))
+qqnorm(zene, main = "Q-Q Plot: Women", col = "red")
+qqline(zene, col = "red")
+# Q-Q plot for men
+qqnorm(muskarci, main = "Q-Q Plot: Men", col = "blue")
+qqline(muskarci, col = "blue")
+# Histogram for women
+hist(zene, main = "Histogram: Women", col = "red", xlab = "Values")
+# Histogram for men
+hist(muskarci, main = "Histogram: Men", col = "blue", xlab = "Values")
+
+
+##teorijski pristup
+ks.test(zene, muskarci)
+mean(muskarci)
+mean(zene)
+#nema statisticki znacajne razlike iako muskarci imaju vecu vrijednost
+
+
+# Bootstrap implementacija
+n <- nrow(df)
+B <- 10000
+t = c()
+t_obs = mean(muskarci) - mean(zene)
+for (i in 1:B) {
+  muskarci_sample = sample(data$CRP, size = 31, replace = TRUE)
+  zene_sample = sample(data$CRP, size = 49, replace = TRUE)
+  t = c(t, mean(muskarci_sample) - mean(zene_sample))
+}
+
+solution = sum(t >= t_obs) / B
+print(solution)
+
+
+##When you perform a bootstrap test, you generate many bootstrap samples to estimate the distribution of a test statistic under the null hypothesis.
+##The Achieved Significance Level (ASL) is the proportion of bootstrap replicates where the test statistic is as extreme or more extreme than the observed test statistic.
+#In other words, ASL is the bootstrap p-value — it tells you how likely it is to get a test statistic at least as extreme as the observed one if the null hypothesis were true.
+#nema statistcke razlike
+```
+
+
+##umjetni primjer gdje se dobi razlika - istrazi jos ovo kasnije jer se cini zanimljivo
+```{r}
+set.seed(456)
+
+# Smaller groups with skewed data and bigger difference
+group1 <- rlnorm(10, meanlog = 1, sdlog = 0.7)
+group2 <- rlnorm(10, meanlog = 1.5, sdlog = 0.7)
+
+# Classic t-test
+t_res <- t.test(group1, group2)
+print(t_res$p.value)  # often > 0.05 due to small sample & skew
+
+# Bootstrap test on means
+n_boot <- 10000
+diff_boot <- numeric(n_boot)
+
+for (i in 1:n_boot) {
+  samp1 <- sample(group1, replace = TRUE)
+  samp2 <- sample(group2, replace = TRUE)
+  diff_boot[i] <- mean(samp1) - mean(samp2)
+}
+
+obs_diff <- mean(group1) - mean(group2)
+
+p_boot <- mean(abs(diff_boot) >= abs(obs_diff))
+print(p_boot)  # can be < 0.05, showing significance
+
+
+```
+
